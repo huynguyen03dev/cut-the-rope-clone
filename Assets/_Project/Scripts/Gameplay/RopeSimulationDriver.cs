@@ -25,11 +25,22 @@ public sealed class RopeSimulationDriver : MonoBehaviour
     [Tooltip("Left empty, anchors are collected from children at Awake.")]
     [SerializeField] RopeAnchor[] anchors;
 
+    [Header("Cut aftermath (US-003, DESIGN §2)")]
+    [Tooltip("Seconds the candy-side stub retracts/fades before despawning.")]
+    [SerializeField] float stubFadeDuration = 0.5f;
+    [Tooltip("Per-second lerp factor retracting the stub toward the candy.")]
+    [SerializeField] float retractRate = 6f;
+
     public RopeSimulation Sim { get; private set; }
 
-    /// <summary>Event channels, one instance per scene load. GameSession takes
-    /// ownership and rebuilds per level in US-003.</summary>
-    public GameEvents Events { get; } = new GameEvents();
+    /// <summary>Event channels. Owned by GameSession and rebuilt per level (US-003);
+    /// a lazy default keeps direct Play-in-Game-scene (no Boot) working.</summary>
+    GameEvents _events;
+    public GameEvents Events => _events ??= new GameEvents();
+
+    /// <summary>Inject a GameSession-owned event bus. Called after the level is
+    /// instantiated, before Start, so subscribers bind to the live per-level bus.</summary>
+    public void UseEvents(GameEvents events) { if (events != null) _events = events; }
 
     /// <summary>Candy position at the start of the current fixed step — the
     /// 'from' end of swept hazard queries (US-002/US-010).</summary>
@@ -85,5 +96,7 @@ public sealed class RopeSimulationDriver : MonoBehaviour
         Sim.Damping = damping;
         Sim.Gravity = new Vector2(0f, -gravity);
         Sim.Candy.InvMass = candyInvMass;
+        Sim.StubFadeDuration = stubFadeDuration;
+        Sim.RetractRate = retractRate;
     }
 }

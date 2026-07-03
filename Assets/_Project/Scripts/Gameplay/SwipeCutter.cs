@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
@@ -63,6 +64,16 @@ public sealed class SwipeCutter : MonoBehaviour
 
     void AdvancePointer(int pointerId, Vector2 world, float alpha)
     {
+        // Per-pointer UI occlusion (gameplay.md input rules): a swipe crossing HUD/UI
+        // must not cut ropes. If the pointer is currently over a UI element, skip the
+        // cut test this frame and drop its previous position so it can't carry a stale
+        // segment across the UI region.
+        EventSystem es = EventSystem.current;
+        if (es != null && es.IsPointerOverGameObject(pointerId))
+        {
+            _prevByPointer.Remove(pointerId);
+            return;
+        }
         if (_prevByPointer.TryGetValue(pointerId, out Vector2 prev) && prev != world)
         {
             driver.CutAt(prev, world, alpha);

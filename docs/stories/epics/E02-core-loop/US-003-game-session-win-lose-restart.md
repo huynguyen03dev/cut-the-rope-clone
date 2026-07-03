@@ -2,7 +2,9 @@
 
 ## Status
 
-planned — provisional until US-001 (M0) exit.
+in_progress — implementation landed; unit + integration green; e2e manual full-loop
+GIF pending (needs a human swipe cut through a win). See durable proof via
+`scripts/bin/harness-cli query matrix`.
 
 ## Lane
 
@@ -71,4 +73,33 @@ evidence when installed.
 
 ## Evidence
 
-Add after validation exists.
+- EditMode: Game.Core.Tests 43/43 passed (Unity 6000.5.1f1, MCP `run_tests EditMode`,
+  2026-07-03). New suites: `SessionStateMachineTests`, `GameEventsLifecycleTests`
+  (two-restart no-leak/no-throw), `LevelScoringTests`; updated `RopeCutTests` with
+  candy-stub fade despawn + free-piece guard.
+- Integration (mechanical, live play mode via MCP `execute_code`): `Playing`
+  → `RaiseCandyEaten` → `Won`; `RequestRestart` → `Loading`→`Intro`→`Playing`;
+  `RaiseCandyLost` → `Lost`; second win + restart repeated with no errors/leaks
+  thrown. `driver.Events` confirmed bound to the per-level session bus.
+- Packages: UniTask 2.5.11 (`com.cysharp.unitask`), PrimeTween
+  (`com.kyrylokuzyk.primetween` via OpenUPM scoped registry).
+- Cut aftermath (deferred from US-001): candy-side stub stays attached and swinging,
+  fades and despawns after `StubFadeDuration`; free-floating piece despawns via
+  `DetectFreePieces`. The retract/shrink visuals are render-time (RopeRenderer, US-015).
+- Screenshots: `Assets/Screenshots/us003-session-hud.png`, `us003-win-overlay.png`
+  ("LEVEL CLEAR!" + score + restart button, full-screen dim), `us003-lose-overlay.png`
+  ("CANDY LOST! Tap Restart").
+- HUD fix (post-integration): the gray-box HUD had three bugs — the RestartButton
+  was a default white 100x100 Image left active dead-center during play (appeared as a
+  persistent white square), WinOverlay/LoseOverlay were tiny squares not full-screen dim
+  panels, and winScoreText resolved null (`transform.Find` misses nested children). Fixed
+  via recursive `FindDeep`, `SetRestartVisible` (hidden during play, shown after overlay
+  fade-in), composed titles, portrait CanvasScaler, full-screen 75%-black dim overlays,
+  repositioned/labeled button + counter. Verified in play mode: gameplay shows only the
+  star counter (no white square), win/lose overlays render correctly, restart click returns
+  to Playing, zero console errors. Harness interventions #2 (input-system legacy fix) and
+  #3 (HUD fix).
+- Scope (gray-box accepted): no real Level prefab yet — `WrapExistingSceneAsLevel`
+  reparents scene entities at runtime; `Boot.unity` is an empty stub. Both are owned by
+  US-008 (prefab pipeline) and US-013 (Boot/scene composition) and tracked there.
+- Trace #5; outcome `partial` (e2e manual GIF intentionally deferred).

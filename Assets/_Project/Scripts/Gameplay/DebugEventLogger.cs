@@ -1,3 +1,4 @@
+using Game.Core;
 using UnityEngine;
 
 /// <summary>
@@ -16,5 +17,6 @@ public sealed class DebugEventLogger : MonoBehaviour
         events.StarCollected += star => Debug.Log($"[GameEvents] StarCollected: {star.name}");
         events.CandyEaten += () => Debug.Log("[GameEvents] CandyEaten (win)");
         events.CandyLost += () => Debug.Log("[GameEvents] CandyLost (lose)");
+        events.LevelCompleted += r => Debug.Log($"[GameEvents] LevelCompleted stars={r.Stars} score={r.Score}");
     }
 }
