@@ -13,6 +13,10 @@ namespace Game.Core
         /// <summary>Raised at the cut position (audio/VFX subscribe in US-014/US-015).</summary>
         public event Action<Vector2> RopeCut;
 
+        /// <summary>Raised at the grab anchor position when an auto-grab zone attaches a
+        /// new rope to the candy (US-005). Audio/juice subscribe in US-014/US-015.</summary>
+        public event Action<Vector2> RopeAttached;
+
         public event Action<GameObject> StarCollected;
         public event Action CandyEaten;
         public event Action CandyLost;
@@ -22,6 +26,7 @@ namespace Game.Core
         public event Action<LevelResult> LevelCompleted;
 
         public void RaiseRopeCut(Vector2 at) => RopeCut?.Invoke(at);
+        public void RaiseRopeAttached(Vector2 at) => RopeAttached?.Invoke(at);
         public void RaiseStarCollected(GameObject star) => StarCollected?.Invoke(star);
         public void RaiseCandyEaten() => CandyEaten?.Invoke();
         public void RaiseCandyLost() => CandyLost?.Invoke();
@@ -33,6 +38,7 @@ namespace Game.Core
         public void Rebuild()
         {
             RopeCut = null;
+            RopeAttached = null;
             StarCollected = null;
             CandyEaten = null;
             CandyLost = null;

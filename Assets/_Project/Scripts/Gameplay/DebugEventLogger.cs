@@ -14,6 +14,7 @@ public sealed class DebugEventLogger : MonoBehaviour
     {
         GameEvents events = driver.Events;
         events.RopeCut += at => Debug.Log($"[GameEvents] RopeCut at {at}");
+        events.RopeAttached += at => Debug.Log($"[GameEvents] RopeAttached (auto-grab) at {at}");
         events.StarCollected += star => Debug.Log($"[GameEvents] StarCollected: {star.name}");
         events.CandyEaten += () => Debug.Log("[GameEvents] CandyEaten (win)");
         events.CandyLost += () => Debug.Log("[GameEvents] CandyLost (lose)");
