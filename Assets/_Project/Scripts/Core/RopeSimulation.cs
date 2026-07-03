@@ -18,6 +18,12 @@ namespace Game.Core
         public float Damping = 0.99f;
         public int Iterations = 16;
 
+        /// <summary>US-003 cut aftermath: candy-side stub fade/retract duration (seconds).</summary>
+        public float StubFadeDuration = 0.5f;
+
+        /// <summary>Per-second lerp factor for the candy-side stub retract toward the candy.</summary>
+        public float RetractRate = 6f;
+
         public RopeSimulation(Vector2 candyPos, float candyInvMass)
         {
             Candy = RopePoint.At(candyPos, candyInvMass);
@@ -53,6 +59,8 @@ namespace Game.Core
             SnapshotRenderPositions();
             Integrate(dt);
             SolveConstraints();
+            TickFades(dt);
+            DetectFreePieces();
         }
 
         /// <summary>
@@ -80,7 +88,18 @@ namespace Game.Core
         /// stub; both leave the swipe test set immediately.
         /// </summary>
         public bool TryCut(Vector2 swipeA, Vector2 swipeB, float alpha, out Vector2 cutPos)
+            => TryCut(swipeA, swipeB, alpha, out cutPos, out _);
+
+        /// <summary>
+        /// As above, but also returns <paramref name="severedLower"/> — the candy-side
+        /// stub created by the cut, or null when the terminal segment is cut (the candy
+        /// just detaches) or when nothing is hit. The candy-side stub starts fading
+        /// immediately so it retracts toward the candy and despawns within
+        /// <see cref="StubFadeDuration"/> (DESIGN §2 cut aftermath).
+        /// </summary>
+        public bool TryCut(Vector2 swipeA, Vector2 swipeB, float alpha, out Vector2 cutPos, out Rope severedLower)
         {
+            severedLower = null;
             for (int r = 0; r < Ropes.Count; r++)
             {
                 Rope rope = Ropes[r];
@@ -91,7 +110,8 @@ namespace Game.Core
                 {
                     if (SegmentHit(swipeA, swipeB, in pts[i], in pts[i + 1], alpha, out cutPos))
                     {
-                        Split(rope, i);
+                        severedLower = Split(rope, i);
+                        FadeCandyStub(severedLower);
                         return true;
                     }
                 }
@@ -99,13 +119,21 @@ namespace Game.Core
                 if (rope.AttachedToCandy &&
                     SegmentHit(swipeA, swipeB, in pts[pts.Length - 1], in Candy, alpha, out cutPos))
                 {
-                    Split(rope, pts.Length - 1);
+                    severedLower = Split(rope, pts.Length - 1);
+                    FadeCandyStub(severedLower);
                     return true;
                 }
             }
 
             cutPos = default;
             return false;
+        }
+
+        void FadeCandyStub(Rope stub)
+        {
+            // The lower stub keeps AttachedToCandy == true (Split copies it); the
+            // terminal-segment cut returns null and just detaches the candy.
+            if (stub != null && stub.AttachedToCandy) BeginFade(stub, StubFadeDuration);
         }
 
         static bool SegmentHit(Vector2 a, Vector2 b, in RopePoint p, in RopePoint q, float alpha, out Vector2 hit)
@@ -116,12 +144,13 @@ namespace Game.Core
 
         /// <summary>
         /// Severs the constraint between Points[segmentIndex] and its successor
-        /// (the candy itself when segmentIndex is the last point). The rope
-        /// becomes the anchor-side stub; the points below the cut become a
-        /// candy-side stub that keeps swinging from the candy. Stub retract/fade
-        /// and double-cut despawn are US-003.
+        /// (the candy itself when segmentIndex is the last point). The rope becomes
+        /// the anchor-side stub; the points below the cut become a candy-side stub
+        /// that keeps swinging from the candy. Returns the candy-side stub, or null
+        /// for a terminal-segment cut (candy just detaches). Stub retract/fade and
+        /// free-piece despawn are applied by the caller via <see cref="BeginFade"/>.
         /// </summary>
-        void Split(Rope rope, int segmentIndex)
+        Rope Split(Rope rope, int segmentIndex)
         {
             rope.Cuttable = false;
             bool wasAttached = rope.AttachedToCandy;
@@ -129,7 +158,7 @@ namespace Game.Core
 
             RopePoint[] pts = rope.Points;
             int lowerCount = pts.Length - (segmentIndex + 1);
-            if (lowerCount == 0) return; // cut the terminal segment: candy just detaches
+            if (lowerCount == 0) return null; // terminal segment: candy just detaches
 
             var upper = new RopePoint[segmentIndex + 1];
             System.Array.Copy(pts, 0, upper, 0, upper.Length);
@@ -137,13 +166,58 @@ namespace Game.Core
             System.Array.Copy(pts, segmentIndex + 1, lower, 0, lowerCount);
             rope.Points = upper;
 
-            Ropes.Add(new Rope
+            var stub = new Rope
             {
                 Points = lower,
                 RestLength = rope.RestLength,
                 AttachedToCandy = wasAttached,
                 Cuttable = false,
-            });
+            };
+            Ropes.Add(stub);
+            return stub;
+        }
+
+        /// <summary>US-003 cut aftermath (DESIGN §2). Marks a rope to fade and despawn
+        /// after <paramref name="duration"/> seconds: the rope leaves the swipe test set
+        /// but keeps integrating and solving its constraints, so the candy-side stub keeps
+        /// swinging (glued to the candy) during the fade — the retract/shrink toward the
+        /// candy is a render-time visual owned by RopeRenderer. Core just schedules the
+        /// despawn once FadeTime reaches zero.</summary>
+        public void BeginFade(Rope rope, float duration)
+        {
+            rope.Fading = true;
+            rope.FadeTime = duration;
+            rope.FadeDuration = duration;
+            rope.Cuttable = false;
+            // AttachedToCandy is intentionally left as-is so the candy-side stub keeps its
+            // constraint and swings during the fade; free middle pieces have no candy tie.
+        }
+
+        void TickFades(float dt)
+        {
+            for (int i = Ropes.Count - 1; i >= 0; i--)
+            {
+                Rope rope = Ropes[i];
+                if (!rope.Fading) continue;
+                rope.FadeTime -= dt;
+                if (rope.FadeTime <= 0f) Ropes.RemoveAt(i);
+            }
+        }
+
+        /// <summary>A free-floating piece: not cuttable, not attached, not already
+        /// fading, and no pinned point. Defensive despawn for the doubly-cut middle
+        /// piece; anchor-side stubs (Points[0] pinned) are intentionally kept hanging.</summary>
+        static bool IsFreePiece(Rope rope)
+            => !rope.Cuttable && !rope.AttachedToCandy && !rope.Fading
+               && rope.Points.Length > 0 && rope.Points[0].InvMass > 0f;
+
+        void DetectFreePieces()
+        {
+            for (int r = 0; r < Ropes.Count; r++)
+            {
+                Rope rope = Ropes[r];
+                if (IsFreePiece(rope)) BeginFade(rope, StubFadeDuration);
+            }
         }
 
         void SnapshotRenderPositions()
@@ -161,6 +235,8 @@ namespace Game.Core
             Vector2 gDt2 = Gravity * (dt * dt);
             for (int r = 0; r < Ropes.Count; r++)
             {
+                // Fading ropes keep integrating so they swing naturally during the fade;
+                // free middle pieces keep falling (despawn is timed, not velocity-gated).
                 RopePoint[] pts = Ropes[r].Points;
                 for (int i = 0; i < pts.Length; i++) IntegratePoint(ref pts[i], gDt2, Damping);
             }

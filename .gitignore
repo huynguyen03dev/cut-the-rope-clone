@@ -116,3 +116,6 @@ scripts/bin/harness-cli.exe
 # Unity crash-recovery scenes (transient duplicates of real scenes)
 /[Aa]ssets/_Recovery/
 /[Aa]ssets/_Recovery.meta
+
+# Agent-local state
+/.pi/
