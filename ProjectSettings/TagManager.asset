@@ -2,7 +2,7 @@
 %TAG !u! tag:unity3d.com,2011:
 --- !u!78 &1
 TagManager:
-  serializedVersion: 2
+  serializedVersion: 3
   tags: []
   layers:
   - Default
@@ -13,9 +13,9 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
-  - 
+  - Star
+  - Mouth
+  - Hazard
   - 
   - 
   - 
@@ -41,3 +41,24 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 1652835677
+    locked: 0
+  - name: Rope
+    uniqueID: 179050126
+    locked: 0
+  - name: Candy
+    uniqueID: 1911575894
+    locked: 0
+  - name: Foreground
+    uniqueID: 2113401982
+    locked: 0
+  - name: VFX
+    uniqueID: 352031934
+    locked: 0
+  - name: UI
+    uniqueID: 394086269
+    locked: 0
+  m_RenderingLayers:
+  - Default
+  m_MigratedRenderPipelines: []
