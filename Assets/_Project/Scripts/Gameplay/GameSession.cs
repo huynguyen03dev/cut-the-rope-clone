@@ -56,7 +56,7 @@ public sealed class GameSession : MonoBehaviour
         _events = new GameEvents();
         // Lazy fallback (DESIGN §3: pressing Play in the Game scene works without Boot).
         if (mainCamera == null) mainCamera = Camera.main;
-        if (hud == null) hud = FindObjectOfType<HudController>(true);
+        if (hud == null) hud = FindAnyObjectByType<HudController>(FindObjectsInactive.Include);
         await UniTask.Yield(PlayerLoopTiming.PostLateUpdate, destroyCancellationToken);
         // Loading → Intro → Playing handled inside BeginLevel().
         await BeginLevel();
@@ -93,7 +93,7 @@ public sealed class GameSession : MonoBehaviour
             return;
         }
 
-        RopeSimulationDriver driver = _levelInstance.Driver ?? FindObjectOfType<RopeSimulationDriver>();
+        RopeSimulationDriver driver = _levelInstance.Driver ?? FindAnyObjectByType<RopeSimulationDriver>();
         if (driver != null) driver.UseEvents(_events); // bind the live per-level bus
 
         SubscribeEvents();
@@ -197,7 +197,7 @@ public sealed class GameSession : MonoBehaviour
             return Instantiate(levelPrefab, parent);
         }
         // Direct-Play fallback: an editor-placed Level already in the scene.
-        Level existing = FindObjectOfType<Level>();
+        Level existing = FindAnyObjectByType<Level>();
         if (existing != null)
         {
             existing.transform.SetParent(levelContainer != null ? levelContainer : transform, true);
@@ -227,11 +227,11 @@ public sealed class GameSession : MonoBehaviour
         // Reparent the gameplay entities BEFORE adding the Level component: Level.Awake
         // resolves its driver via GetComponentInChildren, so the driver must already be a
         // child at AddComponent time.
-        RopeSimulationDriver driver = FindObjectOfType<RopeSimulationDriver>();
+        RopeSimulationDriver driver = FindAnyObjectByType<RopeSimulationDriver>();
         if (driver != null) driver.transform.SetParent(go.transform, true);
-        CandyFollower candy = FindObjectOfType<CandyFollower>();
+        CandyFollower candy = FindAnyObjectByType<CandyFollower>();
         if (candy != null) candy.transform.SetParent(go.transform, true);
-        Playfield playfield = FindObjectOfType<Playfield>();
+        Playfield playfield = FindAnyObjectByType<Playfield>();
         if (playfield != null) playfield.transform.SetParent(go.transform, true);
         var level = go.AddComponent<Level>();
         // Stars, the mouth, and hazards are picked up by CandyInteractor's physics

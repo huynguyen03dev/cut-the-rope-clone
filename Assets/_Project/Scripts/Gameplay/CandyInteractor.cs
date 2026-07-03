@@ -55,7 +55,7 @@ public sealed class CandyInteractor : MonoBehaviour
         // same-frame win/lose; but we still bail once Finished below.
         ResolveGrabZones(sim, pos);
 
-        int starCount = Physics2D.OverlapCircleNonAlloc(pos, candyRadius, _starHits, starMask);
+        int starCount = Physics2D.OverlapCircle(pos, candyRadius, CreateContactFilter(starMask), _starHits);
         bool mouthHit = Physics2D.OverlapCircle(pos, candyRadius, mouthMask) != null;
         bool hazardHit = SweepHitsHazard(prev, pos);
         bool leftPlayfield = playfield != null && !playfield.Contains(pos);
@@ -105,7 +105,7 @@ public sealed class CandyInteractor : MonoBehaviour
     {
         if (grabZoneMask == 0) return;
 
-        int count = Physics2D.OverlapPointNonAlloc(candyPos, _grabHits, grabZoneMask);
+        int count = Physics2D.OverlapPoint(candyPos, CreateContactFilter(grabZoneMask), _grabHits);
         for (int i = 0; i < count; i++)
         {
             AutoGrabZone zone = _grabHits[i] != null ? _grabHits[i].GetComponent<AutoGrabZone>() : null;
@@ -124,5 +124,12 @@ public sealed class CandyInteractor : MonoBehaviour
             if (zone == null) continue; // destroyed
             if (zone.Used && !zone.Contains(candyPos)) zone.RearmIfMultiUse();
         }
+    }
+
+    static ContactFilter2D CreateContactFilter(LayerMask layerMask)
+    {
+        ContactFilter2D filter = new ContactFilter2D();
+        filter.SetLayerMask(layerMask);
+        return filter;
     }
 }
