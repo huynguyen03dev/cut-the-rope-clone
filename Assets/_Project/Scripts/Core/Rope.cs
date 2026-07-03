@@ -23,9 +23,10 @@ namespace Game.Core
         /// <summary>US-003 cut aftermath (DESIGN §2): the candy-side stub retracts
         /// toward the shared candy point and fades over <see cref="FadeDuration"/>,
         /// then leaves the simulation. Anchor-side stubs keep hanging. Free-floating
-        /// middle pieces (no pin, not attached to candy) fade and despawn too. While
-        /// <c>Fading</c> a rope skips integration and constraint solving so the solver
-        /// cannot fight the retract.</summary>
+        /// middle pieces (no pin, not attached to candy) fade and despawn too. A
+        /// <c>Fading</c> rope keeps integrating and solving its constraints so it swings
+        /// naturally during the fade; the retract/shrink toward the candy is a
+        /// render-time visual (RopeRenderer), not a solver step.</summary>
         public bool Fading;
 
         /// <summary>Remaining fade time in seconds; reaches zero, the rope is dropped.</summary>

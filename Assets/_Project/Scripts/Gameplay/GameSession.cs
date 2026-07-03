@@ -137,8 +137,10 @@ public sealed class GameSession : MonoBehaviour
 
     void OnCandyLost()
     {
-        if (_state != SessionState.Lost && _state != SessionState.Won)
-            TransitionTo(SessionEvent.Lose);
+        // Only a Playing→Lost transition starts the lose beat (mirrors OnCandyEaten). A
+        // repeat CandyLost while already resolved is ignored, so the overlay can't double-fire.
+        if (_state != SessionState.Playing) return;
+        TransitionTo(SessionEvent.Lose);
         if (_state == SessionState.Lost) LoseFlow().Forget();
     }
 
