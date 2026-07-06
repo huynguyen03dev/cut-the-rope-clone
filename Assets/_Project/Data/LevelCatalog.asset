@@ -17,4 +17,9 @@ MonoBehaviour:
     displayName: Box 1
     levels:
     - {fileID: 8626526204465793533, guid: 960c1d0dad151011e9df44f2c9f7cbf1, type: 3}
+    - {fileID: 4037140925147011547, guid: f64834c1298069f02966822d60eedc61, type: 3}
+    - {fileID: 8267071167955129228, guid: aa5ff33ba27a5d8beb69166b3942e87a, type: 3}
+    - {fileID: 2234358272299987193, guid: 5ef1846555a10a37ea24656f7cba5f5d, type: 3}
+    - {fileID: 6091581330473010480, guid: 55df9a47e22857e0bb0ac8750add710d, type: 3}
+    - {fileID: 8114866760341885435, guid: 754e41ee2369091b6b32e4a0be788b4c, type: 3}
     starsToUnlock: 0
