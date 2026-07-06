@@ -63,6 +63,12 @@ public sealed class RopeSimulationDriver : MonoBehaviour
         return true;
     }
 
+    /// <summary>Tap-to-pop entry point (US-006): forwards a classified tap to the
+    /// interactor's bubble query. Mirrors <see cref="CutAt"/> so input goes through the
+    /// driver. Returns true when a bubble was popped.</summary>
+    public bool TryPopBubble(Vector2 worldPoint)
+        => _interactor != null && _interactor.TryPopBubble(worldPoint);
+
     void Awake()
     {
         Sim = new RopeSimulation(candyStart.position, candyInvMass);

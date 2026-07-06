@@ -18,6 +18,9 @@ public sealed class CandyInteractor : MonoBehaviour
     [Tooltip("US-005 auto-grab zones. Point-in-collider query inside the sim step " +
              "(decision 0008 — no trigger callbacks). Empty = no grab zones in this level.")]
     [SerializeField] LayerMask grabZoneMask;
+    [Tooltip("US-006 bubbles. Candy-circle overlap query inside the sim step " +
+             "(decision 0008 — no trigger callbacks). Empty = no bubbles in this level.")]
+    [SerializeField] LayerMask bubbleMask;
 
     /// <summary>Set once a win or lose resolved; the session flow (US-003) will
     /// own what happens next. Queries stop immediately.</summary>
@@ -26,8 +29,10 @@ public sealed class CandyInteractor : MonoBehaviour
     RopeSimulationDriver _driver;
     AutoGrabZone[] _grabZones; // cached in Awake (the driver/interactor rebuild every restart)
     bool _hasMultiUseZone;     // skip the re-arm scan entirely when every zone is single-use
+    Bubble _activeBubble;      // the bubble currently holding the candy (buoyancy on), or null
     readonly Collider2D[] _starHits = new Collider2D[8]; // reused — no per-step allocations
     readonly Collider2D[] _grabHits = new Collider2D[8];  // US-005 auto-grab zones
+    readonly Collider2D[] _bubbleHits = new Collider2D[8]; // US-006 bubbles
 
     void Awake()
     {
@@ -39,6 +44,7 @@ public sealed class CandyInteractor : MonoBehaviour
         _hasMultiUseZone = false;
         foreach (AutoGrabZone zone in _grabZones)
             if (!zone.SingleUse) { _hasMultiUseZone = true; break; }
+        _activeBubble = null;
     }
 
     /// <summary>Called by the driver at the end of each fixed step.</summary>
@@ -54,6 +60,10 @@ public sealed class CandyInteractor : MonoBehaviour
         // (attach a rope), never a terminal outcome, so it must not be suppressed by a
         // same-frame win/lose; but we still bail once Finished below.
         ResolveGrabZones(sim, pos);
+
+        // US-006: bubble attach is likewise a side-effect resolved before win/lose. The
+        // attached bubble then follows the candy each step so it "envelops" it while floating.
+        ResolveBubbles(sim, pos);
 
         int starCount = Physics2D.OverlapCircle(pos, candyRadius, CreateContactFilter(starMask), _starHits);
         bool mouthHit = Physics2D.OverlapCircle(pos, candyRadius, mouthMask) != null;
@@ -126,10 +136,62 @@ public sealed class CandyInteractor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// US-006 bubble attach (DESIGN §2). A candy-circle overlap so the bubble envelops the
+    /// candy on contact. On attach the candy's gravity flips to the bubble's buoyancy scale
+    /// (per-point gravity in <see cref="RopeSimulation.CandyGravityScale"/> — zero energy,
+    /// only future acceleration changes). One bubble holds the candy at a time; while
+    /// attached the bubble follows the candy so a tap can land on it as it floats.
+    /// </summary>
+    void ResolveBubbles(RopeSimulation sim, Vector2 candyPos)
+    {
+        if (_activeBubble != null)
+        {
+            _activeBubble.Follow(candyPos);
+            return; // one bubble at a time; ignore other overlaps until it pops
+        }
+        if (bubbleMask == 0) return;
+
+        int count = Physics2D.OverlapCircle(candyPos, candyRadius, CreateContactFilter(bubbleMask), _bubbleHits);
+        for (int i = 0; i < count; i++)
+        {
+            Bubble bubble = _bubbleHits[i] != null ? _bubbleHits[i].GetComponent<Bubble>() : null;
+            if (bubble == null || bubble.Popped || bubble.Attached) continue;
+            bubble.Attach();
+            sim.CandyGravityScale = bubble.BuoyancyScale; // flip to buoyancy (zero energy)
+            _activeBubble = bubble;
+            _activeBubble.Follow(candyPos);
+            _driver.Events.RaiseCandyBubbled(candyPos);
+            break; // attach at most one per step
+        }
+    }
+
+    /// <summary>
+    /// US-006 tap-to-pop. Called by <see cref="SwipeCutter"/> (via the driver) with a tap
+    /// already classified as a tap — never a swipe — so one touch cannot both pop and cut.
+    /// Pops the bubble holding the candy if the tap landed on it, restoring normal gravity
+    /// with zero energy injected. Returns true when a pop happened.
+    /// </summary>
+    public bool TryPopBubble(Vector2 worldPoint)
+    {
+        if (_activeBubble == null || !_activeBubble.Contains(worldPoint)) return false;
+        _activeBubble.Pop();
+        _driver.Sim.CandyGravityScale = 1f; // restore normal gravity, no energy injected
+        _driver.Events.RaiseBubblePopped(worldPoint);
+        _activeBubble = null;
+        return true;
+    }
+
     static ContactFilter2D CreateContactFilter(LayerMask layerMask)
     {
+        // Every interactable collider (star, grab zone, bubble) is a trigger, and a default
+        // ContactFilter2D EXCLUDES triggers — so the overlap must opt in explicitly or it
+        // silently returns nothing. (The mouth query dodges this by using the simple
+        // Physics2D.OverlapCircle(point, radius, layerMask) overload, which honors the global
+        // queriesHitTriggers instead of a filter.)
         ContactFilter2D filter = new ContactFilter2D();
         filter.SetLayerMask(layerMask);
+        filter.useTriggers = true;
         return filter;
     }
 }

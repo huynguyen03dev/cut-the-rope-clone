@@ -18,6 +18,14 @@ namespace Game.Core
         public float Damping = 0.99f;
         public int Iterations = 16;
 
+        /// <summary>US-006 buoyancy: gravity multiplier for the candy point ONLY (DESIGN §2
+        /// "gravity can be flipped per-point"). 1 = normal weight; a bubble flips this
+        /// negative so the candy floats upward, and popping restores it to 1. It scales only
+        /// future acceleration and never touches Pos/PrevPos, so changing it mid-swing injects
+        /// zero energy — the candy's implied velocity is unchanged at the attach/pop frame.
+        /// Owned by the bubble logic (CandyInteractor); the driver does NOT reset it per step.</summary>
+        public float CandyGravityScale = 1f;
+
         /// <summary>US-003 cut aftermath: candy-side stub fade/retract duration (seconds).</summary>
         public float StubFadeDuration = 0.5f;
 
@@ -232,7 +240,8 @@ namespace Game.Core
 
         void Integrate(float dt)
         {
-            Vector2 gDt2 = Gravity * (dt * dt);
+            float dt2 = dt * dt;
+            Vector2 gDt2 = Gravity * dt2;
             for (int r = 0; r < Ropes.Count; r++)
             {
                 // Fading ropes keep integrating so they swing naturally during the fade;
@@ -240,7 +249,9 @@ namespace Game.Core
                 RopePoint[] pts = Ropes[r].Points;
                 for (int i = 0; i < pts.Length; i++) IntegratePoint(ref pts[i], gDt2, Damping);
             }
-            IntegratePoint(ref Candy, gDt2, Damping);
+            // The candy integrates with its own gravity scale so a bubble can flip it to
+            // buoyancy (US-006) without disturbing the rope points hanging from it.
+            IntegratePoint(ref Candy, Gravity * (CandyGravityScale * dt2), Damping);
         }
 
         static void IntegratePoint(ref RopePoint p, Vector2 gDt2, float damping)

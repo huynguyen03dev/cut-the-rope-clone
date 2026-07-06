@@ -17,6 +17,14 @@ namespace Game.Core
         /// new rope to the candy (US-005). Audio/juice subscribe in US-014/US-015.</summary>
         public event Action<Vector2> RopeAttached;
 
+        /// <summary>Raised at the candy position when a bubble envelops it and flips it to
+        /// buoyancy (US-006). Audio/juice subscribe in US-014/US-015.</summary>
+        public event Action<Vector2> CandyBubbled;
+
+        /// <summary>Raised at the pop position when a tap pops the bubble and restores normal
+        /// gravity (US-006). Pop VFX + sound hook (US-014/US-015).</summary>
+        public event Action<Vector2> BubblePopped;
+
         public event Action<GameObject> StarCollected;
         public event Action CandyEaten;
         public event Action CandyLost;
@@ -27,6 +35,8 @@ namespace Game.Core
 
         public void RaiseRopeCut(Vector2 at) => RopeCut?.Invoke(at);
         public void RaiseRopeAttached(Vector2 at) => RopeAttached?.Invoke(at);
+        public void RaiseCandyBubbled(Vector2 at) => CandyBubbled?.Invoke(at);
+        public void RaiseBubblePopped(Vector2 at) => BubblePopped?.Invoke(at);
         public void RaiseStarCollected(GameObject star) => StarCollected?.Invoke(star);
         public void RaiseCandyEaten() => CandyEaten?.Invoke();
         public void RaiseCandyLost() => CandyLost?.Invoke();
@@ -39,6 +49,8 @@ namespace Game.Core
         {
             RopeCut = null;
             RopeAttached = null;
+            CandyBubbled = null;
+            BubblePopped = null;
             StarCollected = null;
             CandyEaten = null;
             CandyLost = null;

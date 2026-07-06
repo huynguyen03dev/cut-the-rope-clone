@@ -771,6 +771,98 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &691915870
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 691915873}
+  - component: {fileID: 691915872}
+  - component: {fileID: 691915871}
+  m_Layer: 12
+  m_Name: Bubble
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &691915871
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691915870}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a0b37042982922dead4ffbfa26c92dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bubble
+  radius: 0.6
+  buoyancyScale: -0.6
+  circleSegments: 40
+  lineWidth: 0.05
+  color: {r: 0.6, g: 0.85, b: 1, a: 0.7}
+  sortingLayer: Rope
+  wobbleScale: 0.06
+  wobbleDuration: 1.1
+  attachPunch: 0.25
+  attachPunchDuration: 0.25
+  popDuration: 0.18
+--- !u!58 &691915872
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691915870}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.6
+--- !u!4 &691915873
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 691915870}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.2, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &919109040
 GameObject:
   m_ObjectHideFlags: 0
@@ -1239,6 +1331,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SwipeCutter
   driver: {fileID: 1695789373}
   worldCamera: {fileID: 578546237}
+  swipeDistancePixels: 24
+  tapMaxDuration: 0.3
 --- !u!114 &1695789372
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1332,6 +1426,9 @@ MonoBehaviour:
   grabZoneMask:
     serializedVersion: 2
     m_Bits: 2048
+  bubbleMask:
+    serializedVersion: 2
+    m_Bits: 4096
 --- !u!1 &1742489100
 GameObject:
   m_ObjectHideFlags: 0
@@ -1969,3 +2066,4 @@ SceneRoots:
   - {fileID: 169172875}
   - {fileID: 2074618088}
   - {fileID: 919109043}
+  - {fileID: 691915873}
