@@ -26,6 +26,10 @@ public sealed class GameSession : MonoBehaviour
     [SerializeField] Level levelPrefab;
     [Tooltip("Where the spawned level instance is parented. May be this transform.")]
     [SerializeField] Transform levelContainer;
+    [Tooltip("Level catalog (US-008). When levelPrefab is null but loadLevelId is set, the level is resolved from here for play-testing. The box/level-select menu (US-013) replaces this.")]
+    [SerializeField] LevelCatalog catalog;
+    [Tooltip("Play-test hook: load this level id from the catalog on start. The menu (US-013) will replace this.")]
+    [SerializeField] string loadLevelId;
 
     [Header("Camera intro")]
     [SerializeField] Camera mainCamera;
@@ -41,6 +45,7 @@ public sealed class GameSession : MonoBehaviour
     [SerializeField] HudController hud;
 
     Level _levelInstance;
+    bool _instanceIsSpawned; // true when the session Instantiated it (prefab/catalog) → destroy on restart; false when adopted from the scene (gray-box)
     GameEvents _events;
     SessionState _state = SessionState.Loading;
 
@@ -191,16 +196,28 @@ public sealed class GameSession : MonoBehaviour
 
     Level InstantiateLevel()
     {
+        Transform parent = levelContainer != null ? levelContainer : transform;
+
+        // Play-test hook (US-008): resolve a level prefab from the catalog by id. The box/level
+        // menu (US-013) replaces this direct id field.
+        if (levelPrefab == null && catalog != null && !string.IsNullOrEmpty(loadLevelId)
+            && catalog.TryGetLevel(loadLevelId, out Level fromCatalog))
+        {
+            _instanceIsSpawned = true;
+            return Instantiate(fromCatalog, parent);
+        }
+
         if (levelPrefab != null)
         {
-            Transform parent = levelContainer != null ? levelContainer : transform;
+            _instanceIsSpawned = true;
             return Instantiate(levelPrefab, parent);
         }
         // Direct-Play fallback: an editor-placed Level already in the scene.
         Level existing = FindAnyObjectByType<Level>();
         if (existing != null)
         {
-            existing.transform.SetParent(levelContainer != null ? levelContainer : transform, true);
+            _instanceIsSpawned = false; // adopted, not spawned — leave intact on restart
+            existing.transform.SetParent(parent, true);
             return existing;
         }
         // Gray-box fallback (pre-US-008): wrap the existing scene entities into a Level
@@ -210,11 +227,14 @@ public sealed class GameSession : MonoBehaviour
 
     void DestroyLevelInstance()
     {
-        if (_levelInstance != null && levelPrefab != null)
+        // Only instances the session spawned (prefab / catalog) are destroyed on restart;
+        // an adopted in-scene Level and the gray-box wrapper are left intact.
+        if (_levelInstance != null && _instanceIsSpawned)
         {
             Destroy(_levelInstance.gameObject);
         }
         _levelInstance = null;
+        _instanceIsSpawned = false;
     }
 
     Level WrapExistingSceneAsLevel()
@@ -233,6 +253,7 @@ public sealed class GameSession : MonoBehaviour
         if (candy != null) candy.transform.SetParent(go.transform, true);
         Playfield playfield = FindAnyObjectByType<Playfield>();
         if (playfield != null) playfield.transform.SetParent(go.transform, true);
+        _instanceIsSpawned = false; // gray-box wrapper: not destroyed on restart (replaced by prefabs)
         var level = go.AddComponent<Level>();
         // Stars, the mouth, and hazards are picked up by CandyInteractor's physics
         // queries on their own layers; they stay in-scene for the gray box and are

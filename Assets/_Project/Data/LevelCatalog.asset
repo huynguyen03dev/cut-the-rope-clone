@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2ce572ef410194dd9373cdff36fe9ea, type: 3}
+  m_Name: LevelCatalog
+  m_EditorClassIdentifier: Game.Gameplay::LevelCatalog
+  boxes:
+  - id: box-01
+    displayName: Box 1
+    levels:
+    - {fileID: 8626526204465793533, guid: 960c1d0dad151011e9df44f2c9f7cbf1, type: 3}
+    starsToUnlock: 0

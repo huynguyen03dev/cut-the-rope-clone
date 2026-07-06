@@ -102,5 +102,39 @@ namespace Game.Core.Tests
             Assert.That(vel.x, Is.EqualTo(impulse.x * Dt * sim.Damping / Dt).Within(0.05f));
             Assert.That(vel.y, Is.EqualTo(impulse.y * Dt * sim.Damping / Dt).Within(0.05f));
         }
+
+        // ── US-008 authored rest length (AddRope 3-arg overload) ──────────────────
+
+        [Test]
+        public void Authored_RestLength_Honored_Per_Segment()
+        {
+            // 8 segments, authored whole-rope rest 4.0 → per-segment 0.5 regardless of geometry.
+            var sim = new RopeSimulation(new Vector2(0f, -1f), 0.05f);
+            Rope rope = sim.AddRope(new Vector2(0f, 0f), 8, 0.5f);
+            Assert.AreEqual(0.5f, rope.RestLength, "per-segment rest length must equal the authored value");
+        }
+
+        [Test]
+        public void Authored_RestLength_Negative_Falls_Back_To_Distance()
+        {
+            var anchor = new Vector2(0f, 0f);
+            var candy = new Vector2(0f, -3f);
+            var sim = new RopeSimulation(candy, 0.05f);
+            Rope rope = sim.AddRope(anchor, 6, -1f); // ≤0 → distance fallback
+            float expected = Vector2.Distance(anchor, candy) / 6f;
+            Assert.AreEqual(expected, rope.RestLength, "≤0 authored rest must fall back to distance/segments");
+        }
+
+        [Test]
+        public void TwoArg_AddRope_Matches_Distance_Over_Segments()
+        {
+            // The 2-arg gray-box path delegates to the 3-arg overload; lock that contract.
+            var anchor = new Vector2(1f, 2f);
+            var candy = new Vector2(4f, -2f);
+            var sim = new RopeSimulation(candy, 0.05f);
+            Rope rope = sim.AddRope(anchor, 12);
+            float expected = Vector2.Distance(anchor, candy) / 12f;
+            Assert.AreEqual(expected, rope.RestLength, "2-arg AddRope must keep the distance/segments default");
+        }
     }
 }

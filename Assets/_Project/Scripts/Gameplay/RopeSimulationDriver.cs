@@ -22,7 +22,9 @@ public sealed class RopeSimulationDriver : MonoBehaviour
     [Header("World")]
     [SerializeField] float gravity = 20f;
     [SerializeField] Transform candyStart;
-    [Tooltip("Left empty, anchors are collected from children at Awake.")]
+    [Tooltip("Authored ropes (US-008). Left empty, collected from children at Awake. Preferred over anchors.")]
+    [SerializeField] RopeAuthoring[] ropes;
+    [Tooltip("Gray-box anchors (fallback when no RopeAuthoring is present). Left empty, collected from children at Awake.")]
     [SerializeField] RopeAnchor[] anchors;
 
     [Header("Cut aftermath (US-003, DESIGN §2)")]
@@ -49,7 +51,25 @@ public sealed class RopeSimulationDriver : MonoBehaviour
     /// <summary>Unity's fixed-time accumulator fraction for render interpolation.</summary>
     public float Alpha => (Time.time - Time.fixedTime) / Time.fixedDeltaTime;
 
-    public int MaxPointsPerRope => segmentCount + 1; // points + shared candy
+    /// <summary>Max points any single rope can contribute (points + shared candy). Reflects
+    /// authored per-rope segment counts when present; the global <see cref="segmentCount"/>
+    /// otherwise. Informational — RopeRenderer sizes per-rope dynamically from live point counts.</summary>
+    public int MaxPointsPerRope
+    {
+        get
+        {
+            int max = segmentCount;
+            if (ropes != null)
+            {
+                for (int i = 0; i < ropes.Length; i++)
+                {
+                    int s = ropes[i].SegmentCount;
+                    if (s > max) max = s;
+                }
+            }
+            return max + 1;
+        }
+    }
 
     CandyInteractor _interactor;
 
@@ -92,13 +112,21 @@ public sealed class RopeSimulationDriver : MonoBehaviour
     void Awake()
     {
         Sim = new RopeSimulation(candyStart.position, candyInvMass);
-        if (anchors == null || anchors.Length == 0)
+        if (ropes == null || ropes.Length == 0) ropes = GetComponentsInChildren<RopeAuthoring>();
+        if (ropes != null && ropes.Length > 0)
         {
-            anchors = GetComponentsInChildren<RopeAnchor>();
+            // Authored ropes (US-008): each carries its own segment count + whole-rope rest length.
+            foreach (RopeAuthoring r in ropes)
+            {
+                float perSeg = r.RestLength > 0f ? r.RestLength / r.SegmentCount : -1f; // ≤0 → distance fallback
+                Sim.AddRope(r.AnchorPosition, r.SegmentCount, perSeg);
+            }
         }
-        foreach (RopeAnchor anchor in anchors)
+        else
         {
-            Sim.AddRope(anchor.transform.position, segmentCount);
+            // Gray-box fallback: bare anchors → candy, global segment count, natural rest length.
+            if (anchors == null || anchors.Length == 0) anchors = GetComponentsInChildren<RopeAnchor>();
+            foreach (RopeAnchor anchor in anchors) Sim.AddRope(anchor.transform.position, segmentCount);
         }
         CandyPrevStepPos = Sim.Candy.Pos;
         PushFeelParams();

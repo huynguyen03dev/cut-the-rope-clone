@@ -38,12 +38,29 @@ namespace Game.Core
         }
 
         /// <summary>
-        /// Spawns a rope from a pinned anchor to the current candy position.
-        /// Rest length is the anchor→candy distance at spawn and every point
-        /// starts with PrevPos = Pos, so attaching injects zero energy.
+        /// Spawns a rope from a pinned anchor to the current candy position. Rest length
+        /// defaults to the anchor→candy distance and every point starts with PrevPos = Pos,
+        /// so attaching injects zero energy. Equivalent to
+        /// <see cref="AddRope(Vector2,int,float)"/> with per-segment rest = distance/segments.
         /// </summary>
         public Rope AddRope(Vector2 anchorPos, int segments)
+            => AddRope(anchorPos, segments, Vector2.Distance(anchorPos, Candy.Pos) / segments);
+
+        /// <summary>
+        /// Spawns a candy-attached rope from a pinned anchor with an explicit PER-SEGMENT rest
+        /// length (US-008 RopeAuthoring). Pass <paramref name="restLengthPerSegment"/> ≤ 0 to
+        /// fall back to the anchor→candy distance (zero-energy attach, matches auto-grab).
+        ///
+        /// Points always start with PrevPos = Pos regardless of the authored rest length, so the
+        /// attach injects zero *velocity*; an authored rest length that differs from the actual
+        /// point spacing is intentional — the first solve step settles the rope to the designer's
+        /// taut/slack shape rather than the natural hang.
+        /// </summary>
+        public Rope AddRope(Vector2 anchorPos, int segments, float restLengthPerSegment)
         {
+            if (restLengthPerSegment <= 0f)
+                restLengthPerSegment = Vector2.Distance(anchorPos, Candy.Pos) / segments;
+
             var pts = new RopePoint[segments]; // anchor + interior; candy is the last segment's far end
             pts[0] = RopePoint.At(anchorPos, 0f);
             for (int i = 1; i < segments; i++)
@@ -54,7 +71,7 @@ namespace Game.Core
             var rope = new Rope
             {
                 Points = pts,
-                RestLength = Vector2.Distance(anchorPos, Candy.Pos) / segments,
+                RestLength = restLengthPerSegment,
                 AttachedToCandy = true,
                 Cuttable = true,
             };
