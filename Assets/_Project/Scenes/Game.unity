@@ -1088,6 +1088,100 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!1 &1258885733
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1258885736}
+  - component: {fileID: 1258885735}
+  - component: {fileID: 1258885734}
+  m_Layer: 13
+  m_Name: AirCushion
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1258885734
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1258885733}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19394049fc2c347c992a6dd3e2872109, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AirCushion
+  radius: 0.7
+  puffMagnitude: 6
+  innerRadius: 0.5
+  maxRadius: 3.5
+  cooldownSeconds: 0.6
+  dashCount: 24
+  dashArcDegrees: 10
+  dashWidth: 0.12
+  readyColor: {r: 1, g: 0.85, b: 0.35, a: 1}
+  coolingColor: {r: 0.45, g: 0.45, b: 0.45, a: 0.7}
+  sortingLayer: Rope
+  puffPunch: 0.25
+  puffPunchDuration: 0.18
+--- !u!58 &1258885735
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1258885733}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.7
+--- !u!4 &1258885736
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1258885733}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.8, y: -1.2, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1383476115
 GameObject:
   m_ObjectHideFlags: 0
@@ -1429,6 +1523,9 @@ MonoBehaviour:
   bubbleMask:
     serializedVersion: 2
     m_Bits: 4096
+  cushionMask:
+    serializedVersion: 2
+    m_Bits: 8192
 --- !u!1 &1742489100
 GameObject:
   m_ObjectHideFlags: 0
@@ -2067,3 +2164,4 @@ SceneRoots:
   - {fileID: 2074618088}
   - {fileID: 919109043}
   - {fileID: 691915873}
+  - {fileID: 1258885736}

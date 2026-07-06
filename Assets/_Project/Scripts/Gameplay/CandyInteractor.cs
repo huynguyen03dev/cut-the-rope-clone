@@ -21,6 +21,9 @@ public sealed class CandyInteractor : MonoBehaviour
     [Tooltip("US-006 bubbles. Candy-circle overlap query inside the sim step " +
              "(decision 0008 — no trigger callbacks). Empty = no bubbles in this level.")]
     [SerializeField] LayerMask bubbleMask;
+    [Tooltip("US-007 air cushions. A tap on a cushion (point-in-collider) emits a radial " +
+             "puff via the solver's external-force hook. Empty = no cushions in this level.")]
+    [SerializeField] LayerMask cushionMask;
 
     /// <summary>Set once a win or lose resolved; the session flow (US-003) will
     /// own what happens next. Queries stop immediately.</summary>
@@ -30,9 +33,11 @@ public sealed class CandyInteractor : MonoBehaviour
     AutoGrabZone[] _grabZones; // cached in Awake (the driver/interactor rebuild every restart)
     bool _hasMultiUseZone;     // skip the re-arm scan entirely when every zone is single-use
     Bubble _activeBubble;      // the bubble currently holding the candy (buoyancy on), or null
+    AirCushion[] _cushions;    // US-007: cached for tap resolution (point-in-collider per tap)
     readonly Collider2D[] _starHits = new Collider2D[8]; // reused — no per-step allocations
     readonly Collider2D[] _grabHits = new Collider2D[8];  // US-005 auto-grab zones
     readonly Collider2D[] _bubbleHits = new Collider2D[8]; // US-006 bubbles
+    readonly Collider2D[] _cushionBubbleHits = new Collider2D[8]; // US-007 free-bubble push
 
     void Awake()
     {
@@ -45,6 +50,7 @@ public sealed class CandyInteractor : MonoBehaviour
         foreach (AutoGrabZone zone in _grabZones)
             if (!zone.SingleUse) { _hasMultiUseZone = true; break; }
         _activeBubble = null;
+        _cushions = FindObjectsByType<AirCushion>();
     }
 
     /// <summary>Called by the driver at the end of each fixed step.</summary>
@@ -180,6 +186,69 @@ public sealed class CandyInteractor : MonoBehaviour
         _driver.Events.RaiseBubblePopped(worldPoint);
         _activeBubble = null;
         return true;
+    }
+
+    /// <summary>
+    /// US-007 tap-to-puff. Called by <see cref="SwipeCutter"/> (via the driver) AFTER a tap
+    /// has been classified and <see cref="TryPopBubble"/> did not consume it, so one touch is
+    /// EITHER a cut OR a pop OR a puff — never more than one. Finds the cushion whose tap
+    /// radius contains the point (decision 0008 — a one-shot input query, not a trigger
+    /// callback), consumes its cooldown, computes the radial impulse from the cushion's config
+    /// against the candy's CURRENT sim position, and applies it through the solver's
+    /// external-force hook (<see cref="RopeSimulation.ApplyCandyImpulse"/> — prevPos -=
+    /// impulse * dt, a one-frame velocity nudge with no Pos/PrevPos touch beyond that). Also
+    /// pushes free bubbles in range (gameplay.md interactable #3). Returns true when a puff
+    /// fired (a tap on empty space or a cooling cushion returns false).
+    /// </summary>
+    public bool TryTapAirCushion(Vector2 worldPoint)
+    {
+        if (cushionMask == 0 || _cushions == null) return false;
+
+        AirCushion target = null;
+        foreach (AirCushion c in _cushions)
+        {
+            if (c == null) continue; // destroyed between cache and tap
+            if (c.Contains(worldPoint)) { target = c; break; }
+        }
+        if (target == null) return false;
+
+        float now = Time.time;
+        if (!target.BeginPuff(now)) return false; // cooling — consume nothing
+
+        // Apply the radial impulse to the candy via the solver's external-force hook.
+        Vector2 candyPos = _driver.Sim.Candy.Pos;
+        Vector2 impulse = AirPuff.ComputeImpulse(target.Origin, candyPos,
+            target.PuffMagnitude, target.InnerRadius, target.MaxRadius);
+        _driver.ApplyAirPuff(impulse);
+
+        // gameplay.md: the puff also pushes free bubbles in range. The active (candy-held)
+        // bubble follows the candy and so rides the impulse; nudging it again would double-
+        // apply, so only free bubbles (not attached, not popped) within maxRadius are nudged
+        // by a proportional translate. Bubbles have no physics velocity model, so this is a
+        // direct transform translate — minimal but reads correctly in the gray-box scene.
+        PushFreeBubbles(target.Origin, target.MaxRadius, target.PuffMagnitude,
+            target.InnerRadius, target.MaxRadius);
+
+        _driver.Events.RaiseAirPuffed(target.Origin);
+        return true;
+    }
+
+    /// <summary>US-007 free-bubble push: a puff nudges any free (not attached, not popped)
+    /// bubble whose collider overlaps the puff's reach by translating it radially outward by
+    /// the same falloff-scaled magnitude (treated as a one-frame displacement). The candy's
+    /// active bubble is skipped — it follows the candy and already received the impulse.</summary>
+    void PushFreeBubbles(Vector2 origin, float reach, float magnitude, float inner, float max)
+    {
+        if (bubbleMask == 0) return;
+        int count = Physics2D.OverlapCircle(origin, reach, CreateContactFilter(bubbleMask), _cushionBubbleHits);
+        for (int i = 0; i < count; i++)
+        {
+            Bubble bubble = _cushionBubbleHits[i] != null ? _cushionBubbleHits[i].GetComponent<Bubble>() : null;
+            if (bubble == null || bubble.Attached || bubble.Popped) continue;
+            Vector2 bp = bubble.transform.position;
+            Vector2 imp = AirPuff.ComputeImpulse(origin, bp, magnitude, inner, max);
+            if (imp.sqrMagnitude > 1e-8f) bubble.transform.position = bp + imp * Time.fixedDeltaTime;
+        }
     }
 
     static ContactFilter2D CreateContactFilter(LayerMask layerMask)

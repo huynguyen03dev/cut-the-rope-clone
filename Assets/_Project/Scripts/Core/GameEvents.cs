@@ -25,6 +25,11 @@ namespace Game.Core
         /// gravity (US-006). Pop VFX + sound hook (US-014/US-015).</summary>
         public event Action<Vector2> BubblePopped;
 
+        /// <summary>Raised at the cushion position when a tap emits a radial puff that nudges
+        /// the candy via the solver's external-force hook (US-007). Puff VFX + sound hook
+        /// (US-014/US-015).</summary>
+        public event Action<Vector2> AirPuffed;
+
         public event Action<GameObject> StarCollected;
         public event Action CandyEaten;
         public event Action CandyLost;
@@ -37,6 +42,7 @@ namespace Game.Core
         public void RaiseRopeAttached(Vector2 at) => RopeAttached?.Invoke(at);
         public void RaiseCandyBubbled(Vector2 at) => CandyBubbled?.Invoke(at);
         public void RaiseBubblePopped(Vector2 at) => BubblePopped?.Invoke(at);
+        public void RaiseAirPuffed(Vector2 at) => AirPuffed?.Invoke(at);
         public void RaiseStarCollected(GameObject star) => StarCollected?.Invoke(star);
         public void RaiseCandyEaten() => CandyEaten?.Invoke();
         public void RaiseCandyLost() => CandyLost?.Invoke();
@@ -51,6 +57,7 @@ namespace Game.Core
             RopeAttached = null;
             CandyBubbled = null;
             BubblePopped = null;
+            AirPuffed = null;
             StarCollected = null;
             CandyEaten = null;
             CandyLost = null;

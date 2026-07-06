@@ -69,6 +69,26 @@ public sealed class RopeSimulationDriver : MonoBehaviour
     public bool TryPopBubble(Vector2 worldPoint)
         => _interactor != null && _interactor.TryPopBubble(worldPoint);
 
+    /// <summary>Tap-to-puff entry point (US-007): forwards a classified tap to the
+    /// interactor's cushion query, tried only after <see cref="TryPopBubble"/> declined so a
+    /// touch is at most one of cut / pop / puff. Returns true when a cushion puffed.</summary>
+    public bool TryPuffAirCushion(Vector2 worldPoint)
+        => _interactor != null && _interactor.TryTapAirCushion(worldPoint);
+
+    /// <summary>US-007 external-force hook: applies a radial puff impulse to the candy via
+    /// <see cref="RopeSimulation.ApplyCandyImpulse"/> (prevPos -= impulse * dt). The impulse
+    /// is computed by the interactor from the cushion config + candy position; this method is
+    /// the single owner of the solver mutation so the candy state has one entry point.
+    ///
+    /// dt is <see cref="Time.fixedDeltaTime"/> deliberately even though this runs from the
+    /// input thread (<see cref="SwipeCutter"/> ≈ Update, not FixedUpdate): the impulse is a
+    /// one-step Verlet velocity nudge (prevPos -= impulse * dt), so using the fixed dt makes the
+    /// candy's implied velocity change equal <paramref name="impulse"/> exactly — independent of
+    /// which render frame the tap landed in. The next FixedUpdate consumes the nudged prevPos.
+    /// </summary>
+    public void ApplyAirPuff(Vector2 impulse)
+        => Sim.ApplyCandyImpulse(impulse, Time.fixedDeltaTime);
+
     void Awake()
     {
         Sim = new RopeSimulation(candyStart.position, candyInvMass);

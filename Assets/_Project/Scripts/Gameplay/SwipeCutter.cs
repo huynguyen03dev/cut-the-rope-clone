@@ -129,7 +129,16 @@ public sealed class SwipeCutter : MonoBehaviour
         if (!p.Swiping &&
             PointerGesture.IsTap(p.StartScreen, screen, now - p.StartTime, swipeDistancePixels, tapMaxDuration))
         {
-            driver.TryPopBubble(ToWorld(screen));
+            Vector2 world = ToWorld(screen);
+            // US-007: a tap is EITHER a cut OR a pop OR a puff — try the bubble first, then a
+            // cushion. At most one fires (TryPopBubble returns false on a miss / no active
+            // bubble, then TryPuffAirCushion checks the cushion mask). One touch, one effect.
+            //
+            // Priority when an active bubble and a cushion overlap at the tap point: the bubble
+            // wins (it is attached to the candy and is the more salient target). gameplay.md does
+            // not specify this ordering, but bubble-first matches the salience heuristic and keeps
+            // the candy-held bubble poppable even when it overlaps a cushion.
+            if (!driver.TryPopBubble(world)) driver.TryPuffAirCushion(world);
         }
     }
 
